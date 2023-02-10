@@ -1,0 +1,19 @@
+{
+  "name": "nuxt-iam-docs",
+  "version": "0.0.1",
+  "description": "Nuxt authentication and authorization built on identity and access management.",
+  "main": "index.js",
+  "authors": {
+    "name": "Jeremy Mwangelwa",
+    "email": "nuxtiam@gmail.com"
+  },
+  "repository": "https://github.com/jeremycoder/nuxt-iam-docs/nuxt-iam-docs",
+  "scripts": {
+    "dev": "vuepress dev src",
+    "build": "vuepress build src"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "vuepress": "^1.5.3"
+  }
+}
