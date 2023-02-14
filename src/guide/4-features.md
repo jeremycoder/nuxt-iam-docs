@@ -1,82 +1,93 @@
 # Features
 
-Understanding the following concepts will help you work with Nuxt IAM faster.
+The following are some of the features of Nuxt IAM. This page assumes you are using all the features of Nuxt IAM. If you're looking for API routes, please go to [backend](./7-backend.md) documentation.
 
 ## User Registration
 
+Nuxt IAM comes with pages and an api that allow you to register a user.
+
 ### Local registration
+
+To register a user locally, that is using **email** and **password** , navigate to the page `/iam/register`. See a [live example](https://nuxt-iam.vercel.app/iam/register)
+
+### Verify user email
+
+To verify user email registration, you need to go to your **.env** file, setup your email sender, and set the **.env** variable `IAM_VERIFY_REGISTRATIONS="true"`. Please see [Configuration](./6-configuration.md) for setting up your email sender.
 
 ### Google registration
 
+To register using Google, you'll need to have already set up your [Google console](https://developers.google.com/identity/gsi/web/guides/overview) app and obtained your credentials. It's free. You'll need your **Google client id.**
+
+Then set your **.env** variables `IAM_ALLOW_GOOGLE_AUTH="true"` and `IAM_GOOGLE_CLIENT_ID="12345"`. The 12345 represents your Google client id.
+
+After that, navigate to the `/iam/login` page, and click the Google button. See a [live example](https://nuxt-iam.vercel.app/iam/login)
+
 ## User login
+
+Nuxt IAM comes with pages and an api that allow you to login as a user.
 
 ### Local login
 
+To login as a user locally, that is using **email** and **password** , navigate to the page `/iam/login`. See a [live example](https://nuxt-iam.vercel.app/iam/login)
+
 ### Google login
+
+To login using Google, navigate to the `/iam/login` page, and click the Google button. Nuxt IAM will create an account for you using data from your Google account. See a [live example](https://nuxt-iam.vercel.app/iam/login)
 
 ## User password reset
 
+For this feature to work, you need to **configure your email sender**. Please see [Configuration](./6-configuration.md). If you forget your password, navigate to the page `/iam/reset`. See a [live example](https://nuxt-iam.vercel.app/iam/reset).
+
 ## User dashboard
+
+After you have successfully logged in, you'll be taken to your dashboard. See a [live example](https://nuxt-iam.vercel.app/iam/dashboard)
 
 ## User profile
 
+The user profile is a child page of the dashboard and contains basic information about your user account. It allows you to change some information about yourself.
+
 ## User settings
+
+The user settings allow you to change your password and delete your account. Deleting your account will permanently delete your account and remove all associated data. Soft deletes have **not** been implemented yet.
 
 ## User logout
 
+Clicking the user log out link will log you out of your profile area. This removes all cookies and deactivates your refresh token so that you'll need to log in to get back into your account.
+
 ## Admin area
+
+The admin area is an area in the profile that is reserved for user administration. Nuxt IAM is designed to allow you to configure it how you want.
+
+### No automatic admin access
+
+All users who register with Nuxt IAM **do not** have access to the admin area. Nuxt IAM does not follow the policy of the first registered user automatically getting administrator rights as this is considered unsafe because a bad actor can assume that the very first record in the database belongs to the admin user.
+
+The **only** way to get admin access if you're the **first user**, is to modify your record in the database. To get admin access, add this value to your **permissions field** in the **users table**: `canAccessAdmin`. Any person who has that has `canAccessAdmin` in their permissions field, will be able to access the admin area.
+
+After you have admin access, you can give any user admin access as well by modifying their record.
+
+### Roles and permissions
+
+Nuxt IAM has a few roles and permissions. Nuxt IAM uses both role-based access control and attribute-based access control. Nuxt IAM has three types of roles: `SUPER_ADMIN`, `ADMIN`, and `GENERAL`.
+
+#### Roles
+
+Nuxt IAM comes with three basic roles.
+
+- `SUPER_ADMIN`: Is required to perform access the [users API](./7-backend.md), and is considered to be the most privileged role.
+- `ADMIN`: Has no privileges. You may add privileges if you desire.
+- `GENERAL`: Is considered to have the lowest level privilege. A user with this role, can only only access their account.
+
+#### Permissions
+
+The only permission that comes with Nuxt IAM is `canAccessAdmin`. Any user with this permission can access the admin area.
+
+**The **most privileged** user is the one has a role of `SUPER_ADMIN` **and** has `canAccessAdmin` permission attribute.** When you add more permission attributes, separate them by commas. For example `canAccessAdmin, hasDeleteAuthority, canRemoveUser`.
 
 ## Admin user management
 
+When a user who has admin access log in, they can view all users, add users, modify user data, and delete users.
+
 ## Admin token management
 
-Nuxt IAM is both frontend and backend. The main authentication and authorization logic takes place in the backend, and you're welcome to change anything as suits your needs. Nuxt IAM adds authentication and authorization components, pages, api routes, and logic to your Nuxt app allowing your app to have authentication and authorization logic. All the components, pages, api routes, and logic are 100% customizable so you can change things any way you want.
-
-## Pages
-
-Nuxt IAM adds several pages to your apps frontend. The pages are wrappers around components. Use these pages and components as is or as starting points for making your app great. The following routes are added to your Nuxt front end. Find them in your **pages** directory:
-
-- **iam**: Parent directory for all pages
-- **iam/index**: Introductory page for Nuxt IAM
-- **iam/register**: User registration page. After successful registration, you will be directed to login page
-- **iam/verifyemail**: If email verification was set to true, (see configuration section), receives email verification token and sends it to backend for verification.
-- **iam/login**: User login page. After successful login, you will be directed to iam/dashboard/index
-- **iam/dashboard/index**: User dashboard.
-- **iam/dashboard/profile**: User profile. User can update their account.
-- **iam/dashboard/settings**: User settings. User can update their password and delete their account.
-- **iam/reset**: User can reset their password. Does not have to be logged in. User will receive an email with a one-time password reset token.
-- **iam/verify**: Page that receives password reset token and sends it to backend for verification
-- **iam/verifyfailed**: Displays email or password verification failure.
-- **iam/verifysuccessful**: Displays password verification success and a temporary password.
-
-## Components
-
-Nuxt IAM adds the following components to your Nuxt application.
-
-## Server
-
-Nuxt IAM adds the following directories to your **server/api** directory.
-
-- **iam/authn**: global authentication handler
-- **iam/refresh-tokens**: refresh tokens handler
-- **iam/users**: global users handler
-
-## Backend for Frontend
-
-Nuxt IAM uses the Backend For Frontend (BFF) architectural pattern to increase the security of your Nuxt application. A BFF pattern allows Nuxt IAM to provide the best security practices for any client. Nuxt IAM differentiates between browsers and apps to provide the best security depending on whether the client is a browser or an app.
-
-Every client needs to send the **client-platform** on every request.
-
-`client-platform` is a **required** header and it must be sent with every request. Client platform allows Nuxt IAM to provide the best practices for securing your app. `client-platform` must be:
-
-- `app`: Use `app` if the request is coming from a non-browser such as a mobile app, tablet, or a tool like POSTMAN. Access and refresh tokens will be sent in the response headers. Can be used in **production**.
-- `browser`: Use `browser` if the request is coming from a browser. Access and refresh tokens will be sent in **secure, httpOnly** cookies. Can be used in **production**.
-- `browser-dev`: Use `browser-dev` if the request is coming from a browser in a development environment. Access and refresh tokens are sent in **unsecure** cookies. Use only in **development.**
-
-## Database
-
-## Tokens
-
-### Access Tokens
-
-### Refresh Tokens
+A user with admin access can also remove individual refresh tokens from users. Removing a refresh token means that that user will not be able to have their tokens automatically refreshed and will need to log in once their access token expires. A user with admin access can also remove all refresh tokens. This is considered a safety measure. Removing all refresh tokens will force **every user in the system** to reauthenticated (login) once their access token expires. Access tokens last only 15 minutes.

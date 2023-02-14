@@ -1,6 +1,6 @@
 ---
 home: true
-heroImage: https://v1.vuepress.vuejs.org/hero.png
+heroImage: https://nuxt-iam.vercel.app/_nuxt/nuxt-iam-logo.fc6f59bf.png
 tagline: Identity and access management for Nuxt, providing powerful authentication and authorization.
 actionText: Quick Start →
 actionLink: /guide/
