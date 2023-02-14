@@ -18,6 +18,129 @@ Nuxt IAM adds the following directories to your **server/api** directory.
 
 The authentication API deals with authentication logic.
 
+### Authentication API Endpoints
+
+Nuxt IAM responds to the following endpoints sent to **api/iam/authn**. See api request and response examples for examples.
+
+- **iam/authn/register**: Register user
+- **iam/authn/login**: Log user in
+- **iam/authn/profile**: Get user profile
+- **iam/authn/update**: Update user profile
+- **iam/authn/reset**: Reset user password
+- Continue...
+
+The following are API routes that Nuxt IAM adds to your app.
+
+#### API Responses
+
+API responses should always be in the format below
+
+```
+"status": ["success"] | ["fail"],
+ "data": {},
+ "error" {},
+```
+
+`status` is always sent. `data` may or may not be sent depending on the request. `error` is only sent if an error occurred.
+
+##### Success
+
+Here's an example of a successful API response when a user is successfully registered:
+
+```
+"status": "success",
+   "data": {
+       "email": "jeremy@example.com"
+   }
+```
+
+Here's an example of an error occuring when we try to register a user who already exists. Email must be unique throughout the system.
+
+##### Fail
+
+```
+"status": "fail",
+  "error": {
+      "message": "Email already exists",
+      "statusCode": 409,
+      "statusMessage": "Email already exists"
+  }
+```
+
+#### Register user
+
+To register a user, send a POST request to `/api/iam/authn/register`.
+
+##### Request
+
+```
+const response = await $fetch("/api/iam/authn/register", {
+    method: "POST",
+    headers: {
+      "client-platform": ['app']|['browser']|['browser-dev'],
+    },
+    body: {
+      first_name: 'Jeremy',
+      last_name: 'Mwangelwa',
+      email: 'jeremy@example.com',
+      password: 'MyExamplePassword123*',
+    },
+  });
+```
+
+##### Response
+
+```
+"status": "success",
+    "data": {
+        "email": "jeremy@example.com"
+    }
+```
+
+If the response status was `success`, then the user was successfully registered and added to the database. A registered user can now be logged in.
+
+#### Login user
+
+To login, send a POST request to `/api/iam/authn/login`.
+
+##### Request
+
+```
+const response = await $fetch("/api/iam/authn/login", {
+    method: "POST",
+    headers: {
+      "client-platform": ['app']|['browser']|['browser-dev'],
+    },
+    body: {
+      email: 'jeremy@example.com',
+      password: 'MyExamplePassword123*',
+    },
+  });
+```
+
+##### Response
+
+###### Body
+
+```
+"status": "success",
+    "data": {
+        "email": "jeremy@example.com"
+    }
+```
+
+###### Headers
+
+```
+access-token: Bearer eyJhbGciOiJIUzI1NiIs...0g3IYFA
+
+refresh-token: Bearer eyJhbGciOiJIUzI1...xIMUybnk
+```
+
+In a successful login, an access token and a refresh token will be sent. If your `client platform` is `app`, the tokens will be sent in the headers. If your `client platform` is `browser`, the tokens will be sent in secure, httpOnly cookies. If your `client platform` is `browser-dev`, the tokens will be sent in unsecure cookies.
+
+**Only use browser-dev in development**
+
 ## Users API
 
 The users API deals with the REST (Represetational State Transfer) of users.
@@ -25,56 +148,3 @@ The users API deals with the REST (Represetational State Transfer) of users.
 ## Refresh Tokens API
 
 The refresh tokens API deals with refreshing JWT tokens.
-
-## Both Backend and Frontend
-
-Nuxt IAM is both frontend and backend. The main authentication and authorization logic takes place in the backend, and you're welcome to change anything as suits your needs. Nuxt IAM adds authentication and authorization components, pages, api routes, and logic to your Nuxt app allowing your app to have authentication and authorization logic. All the components, pages, api routes, and logic are 100% customizable so you can change things any way you want.
-
-## Pages
-
-Nuxt IAM adds several pages to your apps frontend. The pages are wrappers around components. Use these pages and components as is or as starting points for making your app great. The following routes are added to your Nuxt front end. Find them in your **pages** directory:
-
-- **iam**: Parent directory for all pages
-- **iam/index**: Introductory page for Nuxt IAM
-- **iam/register**: User registration page. After successful registration, you will be directed to login page
-- **iam/verifyemail**: If email verification was set to true, (see configuration section), receives email verification token and sends it to backend for verification.
-- **iam/login**: User login page. After successful login, you will be directed to iam/dashboard/index
-- **iam/dashboard/index**: User dashboard.
-- **iam/dashboard/profile**: User profile. User can update their account.
-- **iam/dashboard/settings**: User settings. User can update their password and delete their account.
-- **iam/reset**: User can reset their password. Does not have to be logged in. User will receive an email with a one-time password reset token.
-- **iam/verify**: Page that receives password reset token and sends it to backend for verification
-- **iam/verifyfailed**: Displays email or password verification failure.
-- **iam/verifysuccessful**: Displays password verification success and a temporary password.
-
-## Components
-
-Nuxt IAM adds the following components to your Nuxt application.
-
-## Server
-
-Nuxt IAM adds the following directories to your **server/api** directory.
-
-- **iam/authn**: global authentication handler
-- **iam/refresh-tokens**: refresh tokens handler
-- **iam/users**: global users handler
-
-## Backend for Frontend
-
-Nuxt IAM uses the Backend For Frontend (BFF) architectural pattern to increase the security of your Nuxt application. A BFF pattern allows Nuxt IAM to provide the best security practices for any client. Nuxt IAM differentiates between browsers and apps to provide the best security depending on whether the client is a browser or an app.
-
-Every client needs to send the **client-platform** on every request.
-
-`client-platform` is a **required** header and it must be sent with every request. Client platform allows Nuxt IAM to provide the best practices for securing your app. `client-platform` must be:
-
-- `app`: Use `app` if the request is coming from a non-browser such as a mobile app, tablet, or a tool like POSTMAN. Access and refresh tokens will be sent in the response headers. Can be used in **production**.
-- `browser`: Use `browser` if the request is coming from a browser. Access and refresh tokens will be sent in **secure, httpOnly** cookies. Can be used in **production**.
-- `browser-dev`: Use `browser-dev` if the request is coming from a browser in a development environment. Access and refresh tokens are sent in **unsecure** cookies. Use only in **development.**
-
-## Database
-
-## Tokens
-
-### Access Tokens
-
-### Refresh Tokens

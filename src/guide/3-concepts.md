@@ -52,9 +52,13 @@ Refresh tokens are JWT tokens that are used to get new access and refresh tokens
 
 Every authenticated user can only have one active refresh token at a time.
 
-#### Preventing abuse
+#### Automatic token rotation
 
-All refresh tokens are tracked, and an authenticated user can only have one active refresh token at a time. If anyone tries to get a new set of tokens using an old token, Nuxt IAM will consider that a token stolen and will deactivate all of the user's refresh tokens. The user will need to log in once the access token expires. This feature protects the user's account in case the refresh token is stolen.
+If your client platform is `browser` or `browser-only`, Nuxt IAM will automatically refresh your tokens if it detects that your access token has expired, and that your refresh token is not expired. When using a browser, you really don't have to concern yourself with tokens.
+
+#### Detecting stolen refresh tokens
+
+Nuxt IAM keeps track of expired refresh tokens. Let's say you you have a one refresh token in the database. If you refresh your tokens, you get a new set of tokens, and the old refresh token will be deactivated. If you or someone else steals the old refresh token and attempts to get a new set of tokens using that refresh token, all your refresh tokens will be deactivated, and you will have to login after your access token expires. This feature protects your account against stolen tokens.
 
 ## Sessions
 
