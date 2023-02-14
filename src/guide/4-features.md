@@ -1,10 +1,57 @@
-# Concepts
+# Features
 
 Understanding the following concepts will help you work with Nuxt IAM faster.
 
-## Both Backend and Frontend
+## User Registration
+
+### Local registration
+
+### Google registration
+
+## User login
+
+### Local login
+
+### Google login
+
+## User password reset
+
+## User dashboard
+
+## User profile
+
+## User settings
+
+## User logout
+
+## Admin area
+
+## Admin user management
+
+## Admin token management
 
 Nuxt IAM is both frontend and backend. The main authentication and authorization logic takes place in the backend, and you're welcome to change anything as suits your needs. Nuxt IAM adds authentication and authorization components, pages, api routes, and logic to your Nuxt app allowing your app to have authentication and authorization logic. All the components, pages, api routes, and logic are 100% customizable so you can change things any way you want.
+
+## Pages
+
+Nuxt IAM adds several pages to your apps frontend. The pages are wrappers around components. Use these pages and components as is or as starting points for making your app great. The following routes are added to your Nuxt front end. Find them in your **pages** directory:
+
+- **iam**: Parent directory for all pages
+- **iam/index**: Introductory page for Nuxt IAM
+- **iam/register**: User registration page. After successful registration, you will be directed to login page
+- **iam/verifyemail**: If email verification was set to true, (see configuration section), receives email verification token and sends it to backend for verification.
+- **iam/login**: User login page. After successful login, you will be directed to iam/dashboard/index
+- **iam/dashboard/index**: User dashboard.
+- **iam/dashboard/profile**: User profile. User can update their account.
+- **iam/dashboard/settings**: User settings. User can update their password and delete their account.
+- **iam/reset**: User can reset their password. Does not have to be logged in. User will receive an email with a one-time password reset token.
+- **iam/verify**: Page that receives password reset token and sends it to backend for verification
+- **iam/verifyfailed**: Displays email or password verification failure.
+- **iam/verifysuccessful**: Displays password verification success and a temporary password.
+
+## Components
+
+Nuxt IAM adds the following components to your Nuxt application.
 
 ## Server
 
@@ -27,8 +74,6 @@ Every client needs to send the **client-platform** on every request.
 - `browser-dev`: Use `browser-dev` if the request is coming from a browser in a development environment. Access and refresh tokens are sent in **unsecure** cookies. Use only in **development.**
 
 ## Database
-
-Nuxt IAM requires a database to operate successfully, and uses Prisma (http://www.prisma.io) as its object relation mapper (ORM)
 
 ## Tokens
 

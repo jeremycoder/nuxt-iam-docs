@@ -54,7 +54,16 @@ module.exports = {
         {
           title: "Guide",
           collapsable: false,
-          children: ["", "2-getting-started", "3-concepts"],
+          children: [
+            "",
+            "2-getting-started",
+            "3-concepts",
+            "4-features",
+            "5-frontend",
+            "6-configuration",
+            "7-backend",
+            "8-files",
+          ],
         },
       ],
     },
