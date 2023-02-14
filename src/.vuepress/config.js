@@ -54,7 +54,7 @@ module.exports = {
         {
           title: "Guide",
           collapsable: false,
-          children: ["", "using-vue"],
+          children: ["", "2-getting-started", "3-concepts"],
         },
       ],
     },
