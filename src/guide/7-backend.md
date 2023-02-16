@@ -1,10 +1,100 @@
 # Backend
 
-The bulk of Nuxt IAM's login exists in the backend. Here's an explanation of the APIs.
+Nuxt IAM provides you with an extensive backend. Below is an explanation of files and API logic that deals with the backend.
 
 ## Database
 
-Nuxt IAM requires a database to function correctly.
+Nuxt IAM requires a database to operate successfully, and uses [Prisma](http://www.prisma.io) as its object relation mapper (ORM). For database configuration, please see [Configuration](./6-configuration).
+
+Prisma adds a **prisma/schema** file to your application. The schema file tells Prisma the structure of your database. For more information about your Prisma schema file, please see [Prisma schema](https://www.prisma.io/docs/concepts/components/prisma-schema)
+
+The default Nuxt IAM Prisma schema should look similar to
+
+```
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model users {
+  id             Int              @id @default(autoincrement())
+  uuid           String           @unique(map: "uuid") @db.VarChar(60)
+  email          String           @unique(map: "email") @db.VarChar(255)
+  password       String           @db.VarChar(255)
+  avatar         String?          @db.VarChar(1000)
+  permissions    String?          @db.VarChar(4000)
+  first_name     String           @db.VarChar(255)
+  last_name      String           @db.VarChar(255)
+  role           Role             @default(GENERAL)
+  email_verified Boolean          @default(false)
+  is_active      Boolean          @default(true)
+  last_login     DateTime?        @db.DateTime(0)
+  created_at     DateTime         @default(now()) @db.DateTime(0)
+  deleted_at     DateTime?        @db.DateTime(0)
+  refresh_tokens refresh_tokens[]
+  sessions       sessions[]
+  provider_users provider_users[]
+}
+
+model provider_users {
+  id               Int      @id @default(autoincrement())
+  provider         Provider
+  provider_user_id String   @unique(map: "provider_user_id")
+  user             users?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id          Int
+}
+
+model sessions {
+  id           Int       @id @default(autoincrement())
+  user         users?    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id      Int
+  sid          String    @unique(map: "sid")
+  start_time   DateTime  @default(now())
+  end_time     DateTime?
+  access_token String    @db.VarChar(4000)
+  csrf_token   String    @db.VarChar(255)
+  is_active    Boolean
+  ip_address   String
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  GENERAL
+}
+
+enum Provider {
+  GOOGLE
+}
+
+model refresh_tokens {
+  id           Int      @id @default(autoincrement())
+  token_id     String   @unique(map: "token_id") @db.VarChar(60)
+  user         users?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id      Int
+  is_active    Boolean
+  date_created DateTime @default(now()) @db.DateTime(0)
+}
+
+model one_time_tokens {
+  id           Int        @id @default(autoincrement())
+  token_id     String     @unique(map: "token_id") @db.VarChar(60)
+  token_type   tokenType?
+  expires_at   DateTime   @db.DateTime(0)
+  date_created DateTime   @default(now()) @db.DateTime(0)
+}
+
+enum tokenType {
+  RESET
+}
+
+```
+
+To add and modify tables, familiarize yourself with [Prisma](http://www.prisma.io).
 
 ## Server
 
@@ -14,70 +104,111 @@ Nuxt IAM adds the following directories to your **server/api** directory.
 - **iam/refresh-tokens**: refresh tokens handler
 - **iam/users**: global users handler
 
-## Authentication API
+## API Requests and Responses
 
-The authentication API deals with authentication logic.
+All API requests must have send the `client-platform ` header. The `client-platform` header tells Nuxt IAM what type of client is sending the request, and can therefore provide the best security for the client.
 
-### Authentication API Endpoints
+### Client platform
 
-Nuxt IAM responds to the following endpoints sent to **api/iam/authn**. See api request and response examples for examples.
+`client-platform` is a **required** header and it must be sent with every request. Client platform allows Nuxt IAM to provide the best practices for securing your app. `client-platform` must be:
 
-- **iam/authn/register**: Register user
-- **iam/authn/login**: Log user in
-- **iam/authn/profile**: Get user profile
-- **iam/authn/update**: Update user profile
-- **iam/authn/reset**: Reset user password
-- Continue...
+- `app`: Use `app` if the request is coming from a non-browser such as a mobile app, tablet, or a tool like POSTMAN. Access and refresh tokens will be sent in the response headers. Can be used in **production**.
+- `browser`: Use `browser` if the request is coming from a browser. Access and refresh tokens will be sent in **secure, httpOnly** cookies. Can be used in **production**.
+- `browser-dev`: Use `browser-dev` if the request is coming from a browser in a development environment. Access and refresh tokens are sent in **unsecure** cookies. Use only in **development.**
 
-The following are API routes that Nuxt IAM adds to your app.
+If the `client-platform` header is not sent, the API will respond with an error. In some cases, if `client-platform` is not sent, it will default to `browser`, which assumes the request is being sent by a browser in production.
 
-#### API Responses
+#### Client Platform: 'app'
+
+If `client-platform` is app, you'll need to manage the access and refresh tokens that are sent. For example, when a user successfully logs in, Nuxt IAM will respond with an **access token** and a **refresh token** in the header. You'll need the access token in your next request if you'll be requesting restricted data such as the user's profile.
+
+Access tokens only last **15 minutes**, so after the 15 minutes is up, you need to login again to get a new set of access and refresh tokens. Refresh tokens last **14 days.**
+
+If your access token has expired, but your refresh token has not expired, you can send a POST request to `/api/iam/authn/refresh` with your expired access token and valid refresh token in the header, and you should get new tokens.
+
+You must then use those tokens to access any restricted data.
+
+### API responses
 
 API responses should always be in the format below
 
 ```
-"status": ["success"] | ["fail"],
- "data": {},
- "error" {},
-```
-
-`status` is always sent. `data` may or may not be sent depending on the request. `error` is only sent if an error occurred.
-
-##### Success
-
-Here's an example of a successful API response when a user is successfully registered:
+{
+  "status": ["success"] | ["fail"],
+  "data": {},
+  "error" {},
+}
 
 ```
-"status": "success",
-   "data": {
-       "email": "jeremy@example.com"
-   }
+
+`status` is always sent. `data` is sometimes sent depending on the request. `error` is only sent if an error occurred.
+
+#### Success
+
+Here's an example of a successful API response when a user is successfully registers:
+
+```
+{
+  "status": "success",
+    "data": {
+        "email": "jeremy@example.com"
+    }
+}
 ```
 
 Here's an example of an error occuring when we try to register a user who already exists. Email must be unique throughout the system.
 
-##### Fail
+#### Fail
 
 ```
-"status": "fail",
+{
+  "status": "fail",
   "error": {
       "message": "Email already exists",
       "statusCode": 409,
       "statusMessage": "Email already exists"
   }
+}
 ```
 
-#### Register user
+## Authentication (authn) API
+
+The authentication API handles all authentication logic.
+
+### Authentication API Endpoints
+
+Nuxt IAM adds the following authentication endpoints to your app. See examples below.
+
+- **/api/iam/authn/profile**: GET request will get the authenticated user's profile
+- **/api/iam/authn/isauthenticated**: GET request returns value determining whether user is authenticated (logged in) or not
+- **/api/iam/authn/register**: POST request registers a user
+- **/api/iam/authn/login**: POST request logs a user in
+- **/api/iam/authn/login-google**: POST request logs a user in using Google
+- **/api/iam/authn/refresh**: POST request gets a new pair of access and refresh tokens
+- **/api/iam/authn/reset**: POST request resets a user's password
+- **/api/iam/authn/verifyreset/[token]**: POST request sends password verification token
+- **/api/iam/authn/verifyemailtoken**: POST request to for email verification
+- **/api/iam/authn/logout**: POST request to log a user out
+- **/api/iam/authn/update**: PUT request to update user profile
+- **/api/iam/authn/delete**: DELETE request to delete user profile / account
+
+### Authentication API Requests and Responses
+
+The following section provides examples of authentication API requests and responses.
+
+### Register user
 
 To register a user, send a POST request to `/api/iam/authn/register`.
 
-##### Request
+#### Request
+
+Here's an example request to register a user. Remember, `client-platform` can be `app`, `browser`, or `browser-dev.` In the example below, `client-platform` is `app`, because this request is being sent from a non-browser application.
 
 ```
 const response = await $fetch("/api/iam/authn/register", {
     method: "POST",
     headers: {
-      "client-platform": ['app']|['browser']|['browser-dev'],
+      "client-platform": 'app',
     },
     body: {
       first_name: 'Jeremy',
@@ -88,28 +219,32 @@ const response = await $fetch("/api/iam/authn/register", {
   });
 ```
 
-##### Response
+#### Response
+
+Here's an example of a successful response.
 
 ```
-"status": "success",
+{
+  "status": "success",
     "data": {
         "email": "jeremy@example.com"
     }
+}
 ```
 
 If the response status was `success`, then the user was successfully registered and added to the database. A registered user can now be logged in.
 
-#### Login user
+### Login user
 
 To login, send a POST request to `/api/iam/authn/login`.
 
-##### Request
+#### Request
 
 ```
 const response = await $fetch("/api/iam/authn/login", {
     method: "POST",
     headers: {
-      "client-platform": ['app']|['browser']|['browser-dev'],
+      "client-platform": 'app',
     },
     body: {
       email: 'jeremy@example.com',
@@ -118,9 +253,9 @@ const response = await $fetch("/api/iam/authn/login", {
   });
 ```
 
-##### Response
+#### Response
 
-###### Body
+##### Body
 
 ```
 "status": "success",
@@ -129,22 +264,265 @@ const response = await $fetch("/api/iam/authn/login", {
     }
 ```
 
-###### Headers
+##### Response after login
 
 ```
-access-token: Bearer eyJhbGciOiJIUzI1NiIs...0g3IYFA
+iam-access-token: Bearer eyJhbGciOiJIUzI1NiIs...0g3IYFA
 
-refresh-token: Bearer eyJhbGciOiJIUzI1...xIMUybnk
+iam-refresh-token: Bearer eyJhbGciOiJIUzI1...xIMUybnk
 ```
 
-In a successful login, an access token and a refresh token will be sent. If your `client platform` is `app`, the tokens will be sent in the headers. If your `client platform` is `browser`, the tokens will be sent in secure, httpOnly cookies. If your `client platform` is `browser-dev`, the tokens will be sent in unsecure cookies.
+In a successful login, an access token and a refresh token will be sent. If your `client platform` is `app`, the tokens will be sent in the headers. If your `client platform` is `browser`, the tokens will be sent in **secure, httpOnly** cookies. If your `client platform` is `browser-dev`, the tokens will be sent in unsecure cookies.
 
 **Only use browser-dev in development**
 
-## Users API
+##### Client platform and tokens
 
-The users API deals with the REST (Represetational State Transfer) of users.
+If your client platform is `app` and you need to access a protected resource that requires authentication or you need to refresh your tokens, you'll need to send valid access and refresh tokens in your **request headers**. For example:
 
-## Refresh Tokens API
+```
+const response = await $fetch("/api/iam/authn/refresh", {
+    method: "POST",
+    headers: {
+      "client-platform": "app",
+      "iam-access-token": "Bearer eyJhbGciOiJI....UzI1NiIs",
+      "iam-refresh-token": "Bearer eyJhbGcesTJI....UzI1NiIs",
+    },
+```
 
-The refresh tokens API deals with refreshing JWT tokens.
+If your client platform is `browser` or `browser-dev,` access and refresh tokens are automatically sent by your browser in cookies. You don't have to concern yourself with them.
+
+### Logout user
+
+To logout, send a POST request to `/api/iam/authn/logout`.
+
+#### Request
+
+```
+const response = await $fetch("/api/iam/authn/logout", {
+    method: "POST",
+    headers: {
+      "client-platform": "app",
+    },
+  });
+```
+
+If your client platform is `browser` or `browser-dev`, Nuxt IAM will delete your access and refresh tokens and deactivate your refresh tokens in the database, and you will be immediately logged out of the system.
+If your client platform is `app`, Nuxt IAM will deactivate your refresh tokens in the database. You will be logged out as soon as your access token expires.
+Logging out immediately is not possible because JSON web tokens cannot be revoked once given. We cannot revoke access tokens once given. However, the access token expires in 15 minutes,
+so 15 minutes is the maximum amount of time that a user on client platform `app` will be logged out but still be able to access resources.
+
+### Update user profile
+
+To updated their user profile/account, an authenticated user should send a PUT request to `/api/iam/authn/update`.
+
+#### Request
+
+```
+const response = await $fetch("/api/iam/authn/update", {
+    method: "PUT",
+    headers: {
+      "client-platform": 'browser',
+    },
+    body: {
+      uuid: uuid,
+      first_name: firstName,
+      last_name: lastName,
+      current_password: currentPassword,
+      new_password: newPassword,
+      csrf_token: csrfToken,
+    },
+  });
+```
+
+#### CSRF (cross-site request forgery) protection tokens
+
+A csrf token must be sent with any request that modifies data. Csrf tokens are sent in the body of data after a user is authenticated. For an example of proper usage, please see the [`iamDashboard`](./5-frontend.md) component, or the [`iam/dashboard/admin`](./5-frontend.md) page.
+
+### Update user profile
+
+To get their profile/account, an authenticated user should send a GET request to `/api/iam/authn/profile`.
+
+#### Request
+
+```
+const response = await $fetch("/api/iam/authn/profile", {
+    headers: {
+      "client-platform": 'browser',
+    },
+  });
+```
+
+In the example above, the GET request is implied.
+
+### Login with Google
+
+To login with Google, a user send a POST request to `/api/iam/authn/login-google`.
+
+#### Request
+
+```
+const response = await $fetch("/api/iam/authn/login-google", {
+    method: "POST",
+    headers: {
+      "client-platform": "browser",
+    },
+    body: {
+      token: token,
+    },
+  });
+```
+
+The token is the access/id token you receive from Google after you authenticate with them.
+
+### Check if user is authenticated/logged in
+
+To check if the current user is authenticated, send a GET request to `/api/iam/authn/isauthenticated`.
+
+#### Request
+
+Below is an example function that checks if the user is logged in and returns true or false.
+
+```
+let isAuthenticated = false;
+
+  // Api response always has status, data, or error
+  const { status, error } = await $fetch("/api/iam/authn/isauthenticated", {
+    headers: {
+      "client-platform": clientPlatform,
+    },
+  });
+
+  // If status is 'fail', not authenticated
+  if (status === "fail") {
+    if (error) console.log("error: ", error);
+    isAuthenticated = false;
+  }
+
+  // If status is 'success', not authenticated
+  if (status === "success") {
+    isAuthenticated = true;
+  }
+
+  return isAuthenticated;
+```
+
+### Refresh tokens
+
+To refresh tokens, send a POST request to `/api/iam/authn/refresh`. Refreshing tokens will return a new access token and a new refresh token. All your other tokens will be invalidated.
+
+For this to work, you'll need to have an active or expired access token, and an active refresh token. If both your tokens are expired, you will not be able to refresh your tokens.
+
+#### Request
+
+If your client platform is `app`, you'll need to send your tokens in the header as below.
+
+```
+const response = await $fetch("/api/iam/authn/refresh", {
+    method: "POST",
+    headers: {
+      "client-platform": "app",
+      "iam-access-token": "Bearer eyJhbGciOiJI....UzI1NiIs",
+      "iam-refresh-token": "Bearer eyJhbGcesTJI....UzI1NiIs",
+    },
+  });
+```
+
+The tokens will return in the response headers.
+
+If your client platform is `browser` or `browser-dev`, you'll need to send your tokens as cookies. If you use the Nuxt IAM frontend pages, you won't have to concern yourself with tokens.
+
+```
+const response = await $fetch("/api/iam/authn/refresh", {
+    method: "POST",
+    headers: {
+      "client-platform": "browser",
+    },
+  });
+```
+
+The tokens will return in cookies. If your client platform is `browser`, the tokens will return in **secure, httpOnly** cookies. If your client platform is `browser-dev`, the tokens will return in **unsecure** cookies. `browser-dev` is to be used only for development.
+
+### Reset password
+
+To reset your password, send a POST request to `/api/iam/authn/reset`.
+
+#### Request
+
+```
+const response = await $fetch("/api/iam/authn/reset", {
+    method: "POST",
+    headers: {
+      "client-platform": 'browser',
+    },
+    body: {
+      email: email,
+    },
+  });
+```
+
+If an email address exists in the system, an email with a **one-time** password reset token will be sent. The token expires in **1 hour.** For security purposes, the response is always `success`. Nuxt IAM does not reveal whether the email exists or not.
+
+### Verify password reset token
+
+_Some may consider this topic advanced. For examples, see how the provided pages work in Nuxt IAM._
+
+To verify a password reset token, send a POST request to `/api/iam/authn/verifyreset`. A password reset token can only be verified **once.** Any further verifications will fail.
+
+#### Request
+
+```
+const response = await $fetch("/api/iam/authn/verifyreset", {
+    method: "POST",
+    headers: {
+      "client-platform": 'browser',
+    },
+    body: {
+      token: token,
+    },
+  });
+```
+
+If an email address exists in the system, an email with a **one-time** password reset token will be sent. The token expires in **1 hour.** For security purposes, the response is always `success`. Nuxt IAM does not reveal whether the email exists or not.
+
+### Verify email
+
+_Some may consider this topic advanced. For examples, see how the provided pages work in Nuxt IAM._
+
+To verify an email, send a POST request to `/api/iam/authn/verifyemail`. An email with a verification token link will be sent to you. An email can only be verified **once**. Any other verifications will fail.
+
+#### Request
+
+```
+const response = await $fetch("/api/iam/authn/verifyemail", {
+    method: "POST",
+    headers: {
+      "client-platform": 'browser',
+    },
+    body: {
+      email: email,
+    },
+  });
+```
+
+If an email address exists in the system, an email with a **one-time** email verification token will be sent. The token expires in **1 day.**
+
+### Verify email token
+
+_Some may consider this topic advanced. For examples, see how the provided pages work in Nuxt IAM._
+
+To verify an email verification token, send a POST request to `/api/iam/authn/verifyemailtoken`.
+
+#### Request
+
+```
+const response = await $fetch("/api/iam/authn/verifyemailtoken", {
+    method: "POST",
+    headers: {
+      "client-platform": clientPlatform,
+    },
+    body: {
+      token: token,
+    },
+  });
+```

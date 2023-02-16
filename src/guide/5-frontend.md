@@ -4,7 +4,7 @@ The following is en explanation of some of the logic and components of Nuxt IAM 
 
 ## Pages
 
-Nuxt IAM adds several pages to your apps frontend. The pages are wrappers around components. Use these pages and components as is or as starting points for making your app great. The following routes are added to your Nuxt front end. Find them in your **pages** directory:
+Nuxt IAM adds several pages to your apps frontend. The pages are wrappers around components. Use these pages and components as is, or as starting points for making your app great. The following routes are added to your Nuxt front end. Find them in your **pages** directory:
 
 - **iam**: Parent directory for all pages
 - **iam/index**: Introductory page for Nuxt IAM
@@ -26,8 +26,19 @@ Nuxt IAM adds the following components to your Nuxt application. Most of the com
 - **iamAdmin**: Deals with user administration
 - **iamDashboard**: Contains dashboard user interface and logic such as checking if user is logged in, and email verification. Also acts as the layout wrapper for other pages.
 - **iamLogin**: Contains login UI (user interface) and logic
-- **iamLogin**: Contains login UI (user interface) and logic
+- **iamRegister**: Frontend user registration component
+- **iamReset**: Frontend user password reset component
+- **iamVerifyEmailToken**: Verifies if token sent in email verification is valid
+- **iamVerifyFailed**: Component that notifies user is email verification token or password verification token failed
+- **iamVerifyPasswordReset**: Receives password verification token from email
+- **iamVerifySuccessful**: Notifies user if password reset was successful
 
 ## Composables
 
-Nuxt IAM uses composables as a bridge between the frontend and the backend. We recommend using composables as well. Composables contain the functions that send data to the API.
+Nuxt IAM uses composables as a bridge between the frontend and the backend. We recommend using composables as well. Composables contain the functions that send data to the API, and receive data from the API.
+
+Backend <--- composables <--- Frontend
+Backend ---> composables ---> Frontend
+
+- **useIam**: Contains functions and logic for authentication such as user registration, logging in, checking if user is authenticated etc.
+- **useIamAdmin**: Contains functions and logic for user administration.
