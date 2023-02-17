@@ -1,6 +1,6 @@
 # Introduction
 
-Nuxt IAM, which stands for **Nuxt Identity and Access Management**, is an authentication and authorization framework which adds authentication and authorization to your Nuxt app.
+Nuxt IAM, which stands for **Nuxt Identity and Access Management**, is an authentication and authorization framework which adds authentication and authorization logic to your Nuxt app.
 
 See a fully functional [example app](https://nuxt-iam.vercel.app/iam/).
 

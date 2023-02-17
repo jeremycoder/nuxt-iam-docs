@@ -32,7 +32,7 @@ Nuxt IAM requires a database to operate successfully, and uses [Prisma](http://w
 
 ## Tokens
 
-Nuxt IAM uses signed JSON web tokens (JWT) as part of its security. There are two types of tokens used: **access tokens** and **refresh tokens.** Access tokens allow a user to access a restricted resource, and refresh tokens allow a user to access a new pair of tokens.
+Nuxt IAM uses signed JSON web tokens (JWT) as part of its security. There are two types of tokens used: **access tokens** and **refresh tokens.** Access tokens allow a user to access a restricted resource, and refresh tokens allow a user to get a new pair of tokens.
 
 ### Access Tokens
 
