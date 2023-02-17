@@ -310,3 +310,7 @@ export default defineNuxtConfig({
   //...
 });
 ```
+
+## Error reporting
+
+Nuxt IAM provides very little frontend error reporting, but provides extensive backend error reporting. If an error occurs, please check your your server console logs.

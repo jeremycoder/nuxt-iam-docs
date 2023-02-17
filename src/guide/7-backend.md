@@ -407,6 +407,36 @@ let isAuthenticated = false;
   return isAuthenticated;
 ```
 
+### Update profile
+
+To update their profile/account, an authenticated user must send a PUT request to `/api/iam/authn/update`.
+
+#### Request
+
+For your request to be successful, you must supply the user's `uuid`, `csrf_token`, and at least one of the updatable fields (first name, last name etc.) The uuid is **not** the id. Nuxt IAM uses both id and uuid for a user account and they are both unique. The uuid is displayed to the public, but the id is used internally most of the time.
+
+If you're updating the password, you must supply both **current** and **new password** and the new password must follow the minimum password strength. **The password must contain at least 8 characters, an upper-case letter, and a lower-case letter, a number, and a non-alphanumeric character.**
+
+Below is an example.
+
+```
+const response = await $fetch("/api/iam/authn/update", {
+    method: "PUT",
+    headers: {
+      "client-platform": 'browser',
+    },
+    body: {
+      uuid: values.uuid,
+      first_name: values.firstName,
+      last_name: values.lastName,
+      csrf_token: values.csrfToken,
+      current_password: values.currentPassword,
+      new_password: values.newPassword,
+    },
+  });
+
+```
+
 ### Refresh tokens
 
 To refresh tokens, send a POST request to `/api/iam/authn/refresh`. Refreshing tokens will return a new access token and a new refresh token. All your other tokens will be invalidated.
@@ -442,6 +472,30 @@ const response = await $fetch("/api/iam/authn/refresh", {
 ```
 
 The tokens will return in cookies. If your client platform is `browser`, the tokens will return in **secure, httpOnly** cookies. If your client platform is `browser-dev`, the tokens will return in **unsecure** cookies. `browser-dev` is to be used only for development.
+
+### Delete profile / account
+
+To delete their profile/account, an authenticated user must send a DELETE request to `/api/iam/authn/delete`.
+
+#### Request
+
+The body of the request needs the user's **uuid** of the user and a **csrf token**. The uuid is **not** the id. Nuxt IAM uses both id and uuid for a user account and they are both unique. The uuid is displayed to the public, but the id is used internally most of the time.
+
+```
+const response = await $fetch("/api/iam/authn/delete", {
+    method: "DELETE",
+    headers: {
+      "client-platform": "app",
+    },
+    body: {
+      uuid: uuid,
+      csrf_token: csrfToken,
+    },
+  });
+
+```
+
+For an example of how to properly delete your profile, please see the `iam/dashboard/settings` page.
 
 ### Reset password
 
@@ -526,3 +580,129 @@ const response = await $fetch("/api/iam/authn/verifyemailtoken", {
     },
   });
 ```
+
+## Users (users) API
+
+The users API handles all requests regarding users. Users are considered a restricted resource, therefore cannot be accessed without **authentication** and **authorization.**
+
+### Users API Endpoints
+
+Nuxt IAM adds the following users endpoints to your app. See examples below.
+
+- **/api/iam/users**: GET request will return all users. Maximum return is 100 users. Use `skip` and `take` request parameters to get a set of users e.g., `/api/iam/users?skip=40&take=20`. See more information on [Prisma pagination](https://www.prisma.io/docs/concepts/components/prisma-client/pagination).
+- **/api/iam/users/[uuid]**: GET a specific user record given the user's uuid. uuid is **not** the user's id. Both are unique, but function differently. uuid is displayed publicly, but the user id is used mostly internally.
+- **/api/iam/users**: POST request will **not** create a user. It will return a 422 error. You must use `/api/iam/authn/register` to create a user.
+- **/api/iam/users/[uuid]**: PUT request updates a user given the user's uuid
+- **/api/iam/users/[uuid]**: DELETE request deletes a user given the user's uuid
+
+### Users API Requests and Authorization
+
+User data is considered a restricted resource and therefore Nuxt IAM requires that anyone accessing user data be authenticated and authorized. You are of course welcome to change any authentication or authorization logic as you like.
+
+### Getting all users
+
+To get all users, send a GET request to `/api/iam/users`.
+
+#### Request
+
+Here's an example request to get all users. Remember, `client-platform` can be `app`, `browser`, or `browser-dev.` In the example below, `client-platform` is `app`, because this request is being sent from a non-browser application.
+
+```
+const response = await $fetch("/api/iam/users", {
+    headers: {
+      "client-platform": "app",
+    },
+  });
+```
+
+To paginate use [Prisma pagination](https://www.prisma.io/docs/concepts/components/prisma-client/pagination) parameters `skip` and `take`. In the request below, we'll skip the first 40 users, and grab the next 10.
+
+```
+const response = await $fetch("/api/iam/users?skip=40&take=10", {
+    headers: {
+      "client-platform": "app",
+    },
+  });
+```
+
+#### Authorization required
+
+To get all users, a user must be **authenticated** (be logged in), have the role of `SUPER_ADMIN`, and have their **email verified.**
+
+### Getting a particular user
+
+To get a specific user, send a GET request to `/api/iam/users/[uuid]`. `uuid` needs to be a valid user uuid.
+
+#### Request
+
+```
+const response = await $fetch("/api/iam/users/[uuid]", {
+    headers: {
+      "client-platform": "app",
+    },
+  });
+```
+
+#### Authorization required
+
+To get a specific user, a user must be **authenticated** (be logged in), and must either have the role of `SUPER_ADMIN`, or be the **owner** of the record.
+
+### Create a new user
+
+To create a new user, follow the directions for registering a new user.
+
+### Update a user
+
+To update a specific user, send a PUT request to `/api/iam/users/[uuid]`. `uuid` needs to be a valid user uuid.
+
+#### Request
+
+```
+const response = await $fetch(`/api/iam/users/[uuid]`, {
+    method: "PUT",
+    headers: {
+      "client-platform": "app",
+    },
+    body: values,
+  });
+```
+
+As of February 2023, values need to be of this type:
+
+```
+  first_name?: string;
+  last_name?: string;
+  role?: 'SUPER_ADMIN' | 'ADMIN' | 'GENERAL';
+  csrf_token?: string;
+  is_active?: boolean;
+  permissions?: string;
+```
+
+The `?` means that the values are optional. That means you can update all of them at the same time, or only one.
+
+#### Authorization required
+
+To update a specific user, a user must be **authenticated** (be logged in), must either have the role of `SUPER_ADMIN`, or be the **owner** of the record, and must present the **csrf token**.
+
+### Delete a user
+
+To delete a user, send a DELETE request to `/api/iam/users/[uuid]`. `uuid` needs to be a valid user uuid.
+
+#### Request
+
+```
+const response = await $fetch(`/api/iam/users/${uuid}`, {
+    method: "DELETE",
+    headers: {
+      "client-platform": 'browser',
+    },
+    body: {
+      csrf_token: 'abc...',
+    },
+  });
+
+```
+
+#### Authorization required
+
+To delete a user, you must be **authenticated** (be logged in), must either have the role of `SUPER_ADMIN`, or be the **owner** of the record, and must present the **csrf token**.

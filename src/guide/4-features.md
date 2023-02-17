@@ -91,3 +91,15 @@ When a user who has admin access log in, they can view all users, add users, mod
 ## Admin token management
 
 A user with admin access can also remove individual refresh tokens from users. Removing a refresh token means that that user will not be able to have their tokens automatically refreshed and will need to log in once their access token expires. A user with admin access can also remove all refresh tokens. This is considered a safety measure. Removing all refresh tokens will force **every user in the system** to reauthenticated (login) once their access token expires. Access tokens last only 15 minutes.
+
+## TypeScript
+
+Most of Nuxt IAM is written in TypeScript. The Vue components are mostly written in JavaScript.
+
+## Bootstrap
+
+Nuxt IAM uses [Bootstrap 5](https://getbootstrap.com/docs/5.0/getting-started/introduction/) CSS framework, and some other lower versions of Bootstrap for its frontend needs. You don't have to use Bootstrap. You're welcome to use any CSS framework you need. Nuxt IAM may change to another CSS framework in the future.
+
+Bootstrap was chosen because most of it can be run from a simple CDN call. All pages or components that run Bootstrap call it on the page alone. The CSS framework is not added in the Node modules so that it does not intefere with other frameworks you may want to use such as Tailwind.
+
+Calling Bootstrap from each page is not the most efficient way of using a CSS framework, but it allows Nuxt IAM to remain isolated from the rest of your app, and not interfere with already installed CSS frameworks you may have.
