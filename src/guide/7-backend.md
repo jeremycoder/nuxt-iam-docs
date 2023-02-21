@@ -312,34 +312,7 @@ If your client platform is `app`, Nuxt IAM will deactivate your refresh tokens i
 Logging out immediately is not possible because JSON web tokens cannot be revoked once given. We cannot revoke access tokens once given. However, the access token expires in 15 minutes,
 so 15 minutes is the maximum amount of time that a user on client platform `app` will be logged out but still be able to access resources.
 
-### Update user profile
-
-To updated their user profile/account, an authenticated user should send a PUT request to `/api/iam/authn/update`.
-
-#### Request
-
-```
-const response = await $fetch("/api/iam/authn/update", {
-    method: "PUT",
-    headers: {
-      "client-platform": 'browser',
-    },
-    body: {
-      uuid: uuid,
-      first_name: firstName,
-      last_name: lastName,
-      current_password: currentPassword,
-      new_password: newPassword,
-      csrf_token: csrfToken,
-    },
-  });
-```
-
-#### CSRF (cross-site request forgery) protection tokens
-
-A csrf token must be sent with any request that modifies data. Csrf tokens are sent in the body of data after a user is authenticated. For an example of proper usage, please see the [`iamDashboard`](./5-frontend.md) component, or the [`iam/dashboard/admin`](./5-frontend.md) page.
-
-### Update user profile
+### Get user profile
 
 To get their profile/account, an authenticated user should send a GET request to `/api/iam/authn/profile`.
 
@@ -399,7 +372,7 @@ let isAuthenticated = false;
     isAuthenticated = false;
   }
 
-  // If status is 'success', not authenticated
+  // If status is 'success', is authenticated
   if (status === "success") {
     isAuthenticated = true;
   }
@@ -407,9 +380,13 @@ let isAuthenticated = false;
   return isAuthenticated;
 ```
 
-### Update profile
+### Update user profile
 
 To update their profile/account, an authenticated user must send a PUT request to `/api/iam/authn/update`.
+
+#### CSRF (cross-site request forgery) protection tokens
+
+A csrf token must be sent with any request that modifies data. Csrf tokens are sent in the body of data after a user is authenticated. For an example of proper usage, please see the [`iamDashboard`](./5-frontend.md) component, or the [`iam/dashboard/admin`](./5-frontend.md) page
 
 #### Request
 
@@ -691,7 +668,7 @@ To delete a user, send a DELETE request to `/api/iam/users/[uuid]`. `uuid` needs
 #### Request
 
 ```
-const response = await $fetch(`/api/iam/users/${uuid}`, {
+const response = await $fetch(`/api/iam/users/[uuid]`, {
     method: "DELETE",
     headers: {
       "client-platform": 'browser',
@@ -706,3 +683,97 @@ const response = await $fetch(`/api/iam/users/${uuid}`, {
 #### Authorization required
 
 To delete a user, you must be **authenticated** (be logged in), must either have the role of `SUPER_ADMIN`, or be the **owner** of the record, and must present the **csrf token**.
+
+## Refresh Tokens (refresh-tokens) API
+
+_Some may consider the following topics to be adavanced._
+
+The refresh-tokens API handles all requests regarding refresh tokens. Refresh tokens are considered a restricted resource and, therefore, cannot be accessed without **authentication** and **authorization.**
+
+Refresh tokens are used to get a new set of access and refresh tokens. Nuxt IAM allows only **one** refresh token to be active at any one time. To first get access and refresh tokens, a user must log in. Once logged in, Nuxt IAM will send the user one access token and a refresh token.
+
+If you login again (by sending a POST request to the login endpoint), you will obtain a new set of tokens and the old refresh token will be made inactive. Attempting to refresh your tokens with an inactive token triggers a "stolen token alert" and makes all your refresh tokens inactive. You will be forced to login again. This trigger allows the user to only have one token that can be used to refresh tokens.
+
+Nuxt IAM allows you to work with refresh tokens as a security measure. Refresh tokens are JSON (JavaScript Object Notation) web tokens. They are automatically generated and signed by Nuxt IAM. Any change in the token invalidates the token. A user with an invalid refresh token will not be able to obtain a new set of access and refresh tokens. The user will need to successfylly authenticate (log in) to get a new set of tokens.
+
+Nuxt IAM provides a limited number of refresh token endpoints.
+
+### Refresh Tokens API Endpoints
+
+Nuxt IAM adds the following refresh tokens endpoints to your app. See examples below.
+
+- **/api/iam/refresh-tokens**: GET request will return all users. Maximum return is 100 users. Use `skip` and `take` request parameters to get a set of refresh tokens e.g., `/api/iam/refresh-tokens?skip=40&take=20`. See more information on [Prisma pagination](https://www.prisma.io/docs/concepts/components/prisma-client/pagination).
+- **/api/iam/refresh-tokens/[id]**: DELETE request deletes a specific refresh token. This forces the token user to have to log in once their access token expires.
+- **/api/iam/refresh-tokens**: DELETE request deletes all refresh tokens. This will force all users to log in once their access token expires.
+
+### Refresh Tokens API Requests and Authorization
+
+Refresh tokens data is considered a restricted resource and therefore Nuxt IAM requires that anyone accessing user data be authenticated and authorized. You are of course welcome to change any authentication or authorization logic as you like.
+
+### Getting all refresh tokens
+
+To get all refresh tokens, send a GET request to `/api/iam/refresh-tokens`.
+
+#### Request
+
+Here's an example request to get all refresh tokens. Remember, `client-platform` can be `app`, `browser`, or `browser-dev.` In the example below, `client-platform` is `app`, because this request is being sent from a non-browser application.
+
+```
+const response = await $fetch("/api/iam/refresh-tokens", {
+    headers: {
+      "client-platform": "app",
+    },
+  });
+```
+
+To paginate use [Prisma pagination](https://www.prisma.io/docs/concepts/components/prisma-client/pagination) parameters `skip` and `take`. In the request below, we'll skip the first 40 refresh tokens, and grab the next 10.
+
+```
+const response = await $fetch("/api/iam/users?skip=40&take=10", {
+    headers: {
+      "client-platform": "app",
+    },
+  });
+```
+
+In the examples above, the GET request is implied.
+
+#### Authorization required
+
+To get all refresh tokens, a user must be **authenticated** (be logged in), have the role of `SUPER_ADMIN`, and have their **email verified.**
+
+### Deleting a particular refresh token
+
+To delete a specific refresh token, send a DELETE request to `/api/iam/refresh-tokens/[id]`. This will force the user to login after their access token has expired.
+
+#### Request
+
+```
+const response = await $fetch("/api/iam/refresh-tokens/[id]", {
+    headers: {
+      "client-platform": "app",
+    },
+  });
+```
+
+#### Authorization required
+
+To delete a specific refresh token, a user must be **authenticated** (be logged in), must have the role of `SUPER_ADMIN`, have their **email verified,** and must present the **csrf token**.
+
+### Deleting all refresh tokens
+
+To delete all refresh token, send a DELETE request to `/api/iam/refresh-tokens`. This will force all users to login after each of their access tokens expire.
+
+#### Request
+
+```
+const response = await $fetch("/api/iam/refresh-tokens", {
+    headers: {
+      "client-platform": "app",
+    },
+  });
+```
+
+#### Authorization required
+
+To delete all refresh tokens, a user must be **authenticated** (be logged in), must have the role of `SUPER_ADMIN`, have their **email verified,** and must present the **csrf token**.
