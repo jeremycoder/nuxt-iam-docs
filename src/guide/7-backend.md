@@ -749,9 +749,13 @@ To delete a specific refresh token, send a DELETE request to `/api/iam/refresh-t
 #### Request
 
 ```
-const response = await $fetch("/api/iam/refresh-tokens/[id]", {
+const response = await $fetch(`/api/iam/refresh-tokens/[id]`, {
+    method: "DELETE",
     headers: {
-      "client-platform": "app",
+      "client-platform": "browser",
+    },
+    body: {
+      csrf_token: csrfToken,
     },
   });
 ```
@@ -767,9 +771,13 @@ To delete all refresh token, send a DELETE request to `/api/iam/refresh-tokens`.
 #### Request
 
 ```
-const response = await $fetch("/api/iam/refresh-tokens", {
+const response = await $fetch(`/api/iam/refresh-tokens/`, {
+    method: "DELETE",
     headers: {
-      "client-platform": "app",
+      "client-platform": "browser",
+    },
+    body: {
+      csrf_token: csrfToken,
     },
   });
 ```
