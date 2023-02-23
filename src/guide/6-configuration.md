@@ -251,6 +251,8 @@ The example above allows you to ask for email verification at registration or no
 
 Nuxt IAM allows you to use Google identification services to allow users to register and log in using their Google account. You'll need to have a [Google console account](https://developers.google.com/identity/gsi/web/guides/overview) created with a client ID. If you already have an account, you should be able to create [credentials](https://console.cloud.google.com/apis/credentials) as of February 15, 2023. You'll want the **OAuth 2.0 Client IDs** section.
 
+If you upgrade a package in your Nuxt application, you might have to [change your Google client ID](https://console.cloud.google.com/apis/credentials), which is not hard to do at
+
 #### Authorized JavaScript Origins
 
 Your authorized JavaScript origins should look similar to below. If using localhost, you'll need to have **both**:
